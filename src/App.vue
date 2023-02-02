@@ -28,13 +28,9 @@ function addTab() {
 		key: length,
 	});
 }
-function handleClick(e, tab, i) {
-	currentKey.value = tab.key;
-}
+function handleClick(e, tab, i) {}
 
-function handleClose(tab, i) {
-	console.log('🚀 ~ file: App.vue:36 ~ handleClose ~ e, tab, i', tab, i);
-}
+function handleClose(tab, i) {}
 </script>
 
 <template>

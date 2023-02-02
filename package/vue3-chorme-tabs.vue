@@ -4,10 +4,10 @@
 			<div class="chrome-tabs-content" ref="contentRef">
 				<div
 					class="chrome-tab"
-					v-for="(tab, i) in props.tabs"
+					v-for="(tab, i) in tabs"
 					:key="tab.key"
 					:ref="(el) => setTabRef(el, tab)"
-					:class="{ active: tab.key == props.modelValue }">
+					:class="{ active: tab.key == modelValue }">
 					<div class="chrome-tab-dividers"></div>
 					<div class="chrome-tab-background">
 						<svg version="1.1" xmlns="http://www.w3.org/2000/svg">
@@ -54,6 +54,35 @@ const contentRef = ref<HTMLDivElement>();
 onMounted(() => {
 	init();
 });
+const props = defineProps({
+	modelValue: {
+		type: [String, Number],
+		default: '',
+	},
+	tabs: {
+		type: Array as PropType<Tab[]>,
+		default: () => [],
+	},
+	/**
+	 * tab 的最小宽度
+	 */
+	minWidth: {
+		type: Number,
+		default: 40,
+	},
+	/**
+	 * tab 的最大宽度
+	 */
+	maxWidth: {
+		type: Number,
+		default: 240,
+	},
+});
+const emit = defineEmits<{
+	(event: 'click', e: Event, tab: Tab, i: number): void;
+	(event: 'close', tab: Tab, i: number): void;
+	(event: 'update:modelValue', key): void;
+}>();
 
 function init() {
 	props.tabs.forEach((tab: Tab, i: number) => {
@@ -70,7 +99,9 @@ function addInstance(tab: Tab, i: number) {
 
 	tab._instance.setPosition(222 * i, 0);
 
-	tab._instance.on('staticClick', (e: Event) => handleClick(e, tab, i));
+	tab._instance.on('staticClick', (e: Event) => {
+		return handleClick(e, tab, i);
+	});
 }
 
 function setTabRef(el: tabType, tab: Tab) {
@@ -96,17 +127,11 @@ defineExpose({
  * @param i 当前单击的下标
  */
 const handleClick = (e: Event, tab: Tab, i: number) => {
-	const emit = defineEmits<{
-		(event: 'click', e: Event, tab: Tab, i: number): void;
-	}>();
+	emit('update:modelValue', tab.key);
 	emit('click', e, tab, i);
 };
-
 function handleClose(tab: Tab, i: number) {
 	props.tabs.splice(i, 1);
-	const emit = defineEmits<{
-		(event: 'close', tab: Tab, i: number): void;
-	}>();
 	emit('close', tab, i);
 }
 /**
@@ -147,31 +172,6 @@ const calcTabWidth = computed(() => {
 		return flag;
 	});
 	return `${resultWidth}px`;
-});
-
-const props = defineProps({
-	modelValue: {
-		type: [String, Number],
-		default: '',
-	},
-	tabs: {
-		type: Array as PropType<Tab[]>,
-		default: () => [],
-	},
-	/**
-	 * tab 的最小宽度
-	 */
-	minWidth: {
-		type: Number,
-		default: 40,
-	},
-	/**
-	 * tab 的最大宽度
-	 */
-	maxWidth: {
-		type: Number,
-		default: 240,
-	},
 });
 </script>
 
