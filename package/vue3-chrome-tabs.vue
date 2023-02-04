@@ -47,7 +47,7 @@
 <script setup lang="ts">
 import { ref, PropType, nextTick, onMounted, computed } from 'vue';
 import { Tab, tabType } from './types';
-import Draggabilly from 'draggabilly';
+import Draggabilly from 'draggabilly'; //https://draggabilly.desandro.com/
 
 const contentRef = ref<HTMLDivElement>();
 
@@ -80,6 +80,9 @@ const props = defineProps({
 });
 const emit = defineEmits<{
 	(event: 'click', e: Event, tab: Tab, i: number): void;
+	(event: 'dragstart', e: Event, tab: Tab, i: number): void;
+	(event: 'draging', e: Event, tab: Tab, i: number): void;
+	(event: 'dragend', e: Event, tab: Tab, i: number): void;
 	(event: 'close', tab: Tab, i: number): void;
 	(event: 'update:modelValue', key): void;
 }>();
@@ -90,18 +93,28 @@ function init() {
 	});
 }
 
+const GAP = 19;
+
 function addInstance(tab: Tab, i: number) {
+	// 如果已经存在实例，则重新设置位置
+	if (tab._instance) {
+		tab._instance.setPosition(tab._x, 0);
+		return;
+	}
+
 	tab._instance = new Draggabilly(tab._el, {
 		axis: 'x',
 		containment: contentRef.value,
 		handle: '.chrome-tab-drag-handle',
 	});
 
-	tab._instance.setPosition(222 * i, 0);
+	setTabPosition(tab, i);
 
-	tab._instance.on('staticClick', (e: Event) => {
-		return handleClick(e, tab, i);
-	});
+	// 绑定拖拽事件
+	tab._instance.on('dragStart', (e: Event) => handleDragStart(e, tab, i));
+	tab._instance.on('dragMove', (e: Event) => handleDragMove(e, tab, i));
+	tab._instance.on('dragEnd', (e: Event) => handleDragEnd(e, tab, i));
+	tab._instance.on('staticClick', (e: Event) => handleClick(e, tab, i));
 }
 
 function setTabRef(el: tabType, tab: Tab) {
@@ -110,33 +123,60 @@ function setTabRef(el: tabType, tab: Tab) {
 	}
 }
 
+function doLayout() {
+	props.tabs.forEach((tab, i) => {
+		setTabPosition(tab, i);
+	});
+}
+
+function setTabPosition(tab, i) {
+	const instance = tab._instance;
+	const _x = (calcTabWidth.value - GAP) * i;
+	tab._x = _x;
+	instance.setPosition(_x, 0);
+}
+
 function addTab(tab: Tab) {
 	props.tabs.push(tab);
 	nextTick(() => {
 		init();
+		doLayout();
 	});
 }
 defineExpose({
 	addTab,
 });
 
-/**
- * 单击事件监听
- * @param e 单击事件
- * @param tab 命中的 tab
- * @param i 当前单击的下标
- */
 const handleClick = (e: Event, tab: Tab, i: number) => {
 	emit('update:modelValue', tab.key);
 	emit('click', e, tab, i);
 };
+
 function handleClose(tab: Tab, i: number) {
+	tab._instance.destroy();
 	props.tabs.splice(i, 1);
+	doLayout();
 	emit('close', tab, i);
 }
-/**
- * 计算单个 tab 的宽度
- */
+
+const handleDragStart = (e: Event, tab: Tab, i: number) => {
+	emit('update:modelValue', tab.key);
+	emit('dragstart', e, tab, i);
+};
+function handleDragMove(e, tab, i) {
+	const halfWidth = calcTabWidth.value / 2;
+	const { x } = tab._instance.position;
+
+	emit('draging', e, tab, i);
+}
+function handleDragEnd(e, tab, i) {
+	const { _instance } = tab;
+	if (_instance.position.x === 0) return;
+
+	_instance.setPosition(tab._x, 0);
+	emit('dragend', e, tab, i);
+}
+
 const calcTabWidth = computed(() => {
 	const { tabs, minWidth, maxWidth } = props;
 	const containerWidth = contentRef.value?.clientWidth || window.innerWidth;
@@ -171,19 +211,23 @@ const calcTabWidth = computed(() => {
 		}
 		return flag;
 	});
-	return `${resultWidth}px`;
+	return resultWidth;
 });
 </script>
 
 <style scoped lang="less">
 @import './chrome-tabs.less';
 .vue3-chrome-tabs {
-	--container-background-color: #dee1e6;
+	--container-background-color: #03629d;
 
-	--tab-width: v-bind(calcTabWidth);
+	--tab-width: v-bind(calcTabWidth + 'px');
 	--tab-content-margin: 9px;
-	--tab-background-color: #fff;
-	--tab-text-color: #5f6368;
-	--tab-text-color-active: #45474a;
+	--tab-background-color: #056eae;
+	--tab-background-color-active: #117fc3;
+	--tab-text-color: #d9d9da;
+	--tab-text-color-active: #fff;
+	--tab-close-color: #fff;
+	--tab-close-background-color: #3085bb;
+	--tab-close-background-color-active: #4d97c5;
 }
 </style>

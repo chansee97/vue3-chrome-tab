@@ -1,5 +1,5 @@
 import { App } from 'vue';
-import Vue3ChromeTabs from './vue3-chorme-tabs.vue';
+import Vue3ChromeTabs from './vue3-chrome-tabs.vue';
 import type { Tab } from './types';
 
 const install = (app: App) => {

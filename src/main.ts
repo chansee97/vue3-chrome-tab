@@ -1,10 +1,10 @@
 import { createApp } from 'vue';
-import ChormeTabs from '../package/index';
+import chromeTabs from '../package/index';
 
 import App from './App.vue';
 
 const app = createApp(App);
 
-app.use(ChormeTabs);
+app.use(chromeTabs);
 
 app.mount('#app');
