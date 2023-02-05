@@ -2,41 +2,44 @@
 	<div class="vue3-chrome-tabs">
 		<div class="chrome-tabs" style="--tab-content-margin: 9px">
 			<div class="chrome-tabs-content" ref="contentRef">
-				<div
-					class="chrome-tab"
-					v-for="(tab, i) in tabs"
-					:key="tab.key"
-					:ref="(el) => setTabRef(el, tab)"
-					:class="{ active: tab.key == modelValue }">
-					<div class="chrome-tab-dividers"></div>
-					<div class="chrome-tab-background">
-						<svg version="1.1" xmlns="http://www.w3.org/2000/svg">
-							<defs>
-								<symbol id="chrome-tab-geometry-left" viewBox="0 0 214 36">
-									<path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z" />
-								</symbol>
-								<symbol id="chrome-tab-geometry-right" viewBox="0 0 214 36">
-									<use xlink:href="#chrome-tab-geometry-left" />
-								</symbol>
-								<clipPath id="crop"><rect class="mask" width="100%" height="100%" x="0" /></clipPath>
-							</defs>
-							<svg width="52%" height="100%">
-								<use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry" />
-							</svg>
-							<g transform="scale(-1, 1)">
-								<svg width="52%" height="100%" x="-100%" y="0">
-									<use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry" />
+				<TransitionGroup name="tab">
+					<div
+						class="chrome-tab"
+						v-for="(tab, i) in tabs"
+						:key="tab.key"
+						:ref="(el) => setTabRef(el, tab)"
+						:class="{ active: tab.key == modelValue }"
+						@contextmenu="(e) => handleContextMenu(e, tab, i)">
+						<div class="chrome-tab-dividers"></div>
+						<div class="chrome-tab-background">
+							<svg version="1.1" xmlns="http://www.w3.org/2000/svg">
+								<defs>
+									<symbol id="chrome-tab-geometry-left" viewBox="0 0 214 36">
+										<path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z" />
+									</symbol>
+									<symbol id="chrome-tab-geometry-right" viewBox="0 0 214 36">
+										<use xlink:href="#chrome-tab-geometry-left" />
+									</symbol>
+									<clipPath id="crop"><rect class="mask" width="100%" height="100%" x="0" /></clipPath>
+								</defs>
+								<svg width="52%" height="100%">
+									<use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry" />
 								</svg>
-							</g>
-						</svg>
+								<g transform="scale(-1, 1)">
+									<svg width="52%" height="100%" x="-100%" y="0">
+										<use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry" />
+									</svg>
+								</g>
+							</svg>
+						</div>
+						<div class="chrome-tab-content">
+							<div class="chrome-tab-favicon">😄</div>
+							<div class="chrome-tab-title">{{ tab.label }}</div>
+							<div class="chrome-tab-drag-handle"></div>
+							<div class="chrome-tab-close" @click.stop="handleClose(tab, i)"></div>
+						</div>
 					</div>
-					<div class="chrome-tab-content">
-						<div class="chrome-tab-favicon">😄</div>
-						<div class="chrome-tab-title">{{ tab.label }}</div>
-						<div class="chrome-tab-drag-handle"></div>
-						<div class="chrome-tab-close" @click.stop="handleClose(tab, i)"></div>
-					</div>
-				</div>
+				</TransitionGroup>
 			</div>
 			<div class="chrome-tabs-bottom-bar"></div>
 		</div>
@@ -68,7 +71,7 @@ const props = defineProps({
 	 */
 	minWidth: {
 		type: Number,
-		default: 40,
+		default: 24,
 	},
 	/**
 	 * tab 的最大宽度
@@ -80,6 +83,7 @@ const props = defineProps({
 });
 const emit = defineEmits<{
 	(event: 'click', e: Event, tab: Tab, i: number): void;
+	(event: 'contextmenu', e: Event, tab: Tab, i: number): void;
 	(event: 'dragstart', e: Event, tab: Tab, i: number): void;
 	(event: 'draging', e: Event, tab: Tab, i: number): void;
 	(event: 'dragend', e: Event, tab: Tab, i: number): void;
@@ -137,10 +141,12 @@ function setTabPosition(tab, i) {
 }
 
 function addTab(tab: Tab) {
+	const { length } = props.tabs;
 	props.tabs.push(tab);
 	nextTick(() => {
-		init();
+		addInstance(tab, length);
 		doLayout();
+		emit('update:modelValue', tab.key);
 	});
 }
 defineExpose({
@@ -158,22 +164,76 @@ function handleClose(tab: Tab, i: number) {
 	doLayout();
 	emit('close', tab, i);
 }
-
-const handleDragStart = (e: Event, tab: Tab, i: number) => {
+function handleContextMenu(e: Event, tab: Tab, i: number) {
+	emit('contextmenu', e, tab, i);
+}
+function handleDragStart(e: Event, tab: Tab, i: number) {
 	emit('update:modelValue', tab.key);
 	emit('dragstart', e, tab, i);
-};
+}
 function handleDragMove(e, tab, i) {
 	const halfWidth = calcTabWidth.value / 2;
+
 	const { x } = tab._instance.position;
+	const { length } = props.tabs;
+
+	let swapTab: Tab | null = null;
+	for (let i = 0; i < length; i++) {
+		const currentTab: Tab = props.tabs[i];
+		const targetX: number = (currentTab._x || 1) - 1;
+		// 如果命中自己本身，则无需交换
+		if (tab.key === currentTab.key) {
+			// eslint-disable-next-line no-continue
+			continue;
+		}
+		// 判断是否有重叠的 tab，只需要判定是否在前半部分即可
+		if (targetX <= x && x < targetX + halfWidth) {
+			swapTab = currentTab;
+			swapTabs(tab, swapTab);
+			break;
+		}
+	}
 
 	emit('draging', e, tab, i);
+}
+function swapTabs(tab: Tab, swapTab: Tab) {
+	const { tabs } = props;
+	let index = -1;
+	let swapIndex = -1;
+
+	for (let i = 0; i < tabs.length; i++) {
+		const obj: Tab = tabs[i];
+		if (obj.key === tab.key) {
+			index = i;
+		}
+		if (obj.key === swapTab.key) {
+			swapIndex = i;
+		}
+	}
+
+	if (index < 0 || swapIndex < 0 || index === swapIndex) {
+		return;
+	}
+	/** 交换index */
+	[tabs[index], tabs[swapIndex]] = [tabs[swapIndex], tabs[index]];
+
+	/** 交换position */
+	[tab._x, swapTab._x] = [swapTab._x, tab._x];
+
+	const { _x } = tab;
+	const { _instance } = swapTab;
+
+	nextTick(() => {
+		_instance.setPosition(_x, _instance.position.y);
+	});
 }
 function handleDragEnd(e, tab, i) {
 	const { _instance } = tab;
 	if (_instance.position.x === 0) return;
 
-	_instance.setPosition(tab._x, 0);
+	nextTick(() => {
+		_instance.setPosition(tab._x, 0);
+	});
 	emit('dragend', e, tab, i);
 }
 
@@ -230,4 +290,12 @@ const calcTabWidth = computed(() => {
 	--tab-close-background-color: #3085bb;
 	--tab-close-background-color-active: #4d97c5;
 }
+// .tab-enter-active {
+// 	transition: all 0.5s ease;
+// }
+
+// .tab-leave-to {
+// 	opacity: 0;
+// 	transform: translateX(-30px);
+// }
 </style>

@@ -37,6 +37,9 @@ function addTab() {
 function handleClick(e, tab, i) {
 	addLog('Click' + i);
 }
+function handleContextmenu(e, tab, i) {
+	addLog('Contextmenu' + i);
+}
 
 function handleClose(tab, i) {
 	addLog('Close');
@@ -59,6 +62,7 @@ function handleDragEnd() {
 			v-model="currentKey"
 			:tabs="tabsList"
 			@click="handleClick"
+			@contextmenu="handleContextmenu"
 			@close="handleClose"
 			@dragstart="handleDragStart"
 			@draging="handleDraging"
