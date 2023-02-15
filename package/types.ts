@@ -8,8 +8,6 @@ export interface Tab {
 	favico?: string;
 	/** 是否可关闭 */
 	closable?: boolean;
-	/** 是否可被交换 */
-	swappable?: boolean;
 	/** 是否可拖拽 */
 	dragable?: boolean;
 
@@ -19,3 +17,7 @@ export interface Tab {
 }
 
 export type tabType = Element | ComponentPublicInstance | null;
+
+export type TabsIns = {
+	addTab:Function
+};

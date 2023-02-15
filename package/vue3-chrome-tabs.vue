@@ -100,7 +100,7 @@ function addInstance(tab: Tab, i: number) {
 		tab._instance.setPosition(tab._x, 0);
 		return;
 	}
-	
+
 	tab._instance = new Draggabilly(tab._el, {
 		axis: 'x',
 		containment: contentRef.value,
@@ -110,9 +110,12 @@ function addInstance(tab: Tab, i: number) {
 	setTabPosition(tab, i);
 
 	// 绑定拖拽事件
-	tab._instance.on('dragStart', (e: Event) => handleDragStart(e, tab, i));
-	tab._instance.on('dragMove', (e: Event) => handleDragMove(e, tab, i));
-	tab._instance.on('dragEnd', (e: Event) => handleDragEnd(e, tab, i));
+	const { dragable = true } = tab
+	if (dragable) {
+		tab._instance.on('dragStart', (e: Event) => handleDragStart(e, tab, i));
+		tab._instance.on('dragMove', (e: Event) => handleDragMove(e, tab, i));
+		tab._instance.on('dragEnd', (e: Event) => handleDragEnd(e, tab, i));
+	}
 	tab._instance.on('staticClick', (e: Event) => handleClick(e, tab, i));
 }
 
@@ -245,7 +248,7 @@ function handleDragEnd(e, tab, i) {
 const calcTabWidth = computed(() => {
 	const { tabs, minWidth, maxWidth } = props;
 	const containerWidth = contentRef.value?.clientWidth || window.innerWidth;
-	const averageWidth = (containerWidth - 7 -GAP) / tabs.length + GAP;
+	const averageWidth = (containerWidth - 7 - GAP) / tabs.length + GAP;
 	let resultWidth;
 
 	const handle: [boolean, () => void][] = [

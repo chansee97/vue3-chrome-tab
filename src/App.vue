@@ -1,10 +1,10 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import { Tab } from '../package/index';
+import { Tab, TabsIns } from '../package/index';
 
 const currentKey = ref(0);
 
-const tabsRef = ref(null);
+const tabsRef = ref<TabsIns>();
 
 const tabsList = ref<Tab[]>([]);
 
@@ -26,7 +26,6 @@ tabsList.value = [
 
 function addTab() {
 	const length = tabsList.value.length;
-
 	if (!tabsRef.value) return;
 	tabsRef.value.addTab({
 		label: `new Tab ${length}`,
@@ -34,14 +33,14 @@ function addTab() {
 	});
 	addLog('add');
 }
-function handleClick(e, tab, i) {
+function handleClick(e:Event, tab:Tab, i:number) {
 	addLog('Click' + i);
 }
-function handleContextmenu(e, tab, i) {
+function handleContextmenu(e: Event, tab: Tab, i: number) {
 	addLog('Contextmenu' + i);
 }
 
-function handleClose(tab, i) {
+function handleClose(tab: Tab, i: number) {
 	addLog('Close');
 }
 function handleDragStart() {
