@@ -2,44 +2,39 @@
 	<div class="vue3-chrome-tabs">
 		<div class="chrome-tabs" style="--tab-content-margin: 9px">
 			<div class="chrome-tabs-content" ref="contentRef">
-				<TransitionGroup name="tab">
-					<div
-						class="chrome-tab"
-						v-for="(tab, i) in tabs"
-						:key="tab.key"
-						:ref="(el) => setTabRef(el, tab)"
-						:class="{ active: tab.key == modelValue }"
-						@contextmenu="(e) => handleContextMenu(e, tab, i)">
-						<div class="chrome-tab-dividers"></div>
-						<div class="chrome-tab-background">
-							<svg version="1.1" xmlns="http://www.w3.org/2000/svg">
-								<defs>
-									<symbol id="chrome-tab-geometry-left" viewBox="0 0 214 36">
-										<path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z" />
-									</symbol>
-									<symbol id="chrome-tab-geometry-right" viewBox="0 0 214 36">
-										<use xlink:href="#chrome-tab-geometry-left" />
-									</symbol>
-									<clipPath id="crop"><rect class="mask" width="100%" height="100%" x="0" /></clipPath>
-								</defs>
-								<svg width="52%" height="100%">
-									<use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry" />
-								</svg>
-								<g transform="scale(-1, 1)">
-									<svg width="52%" height="100%" x="-100%" y="0">
-										<use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry" />
-									</svg>
-								</g>
+				<div class="chrome-tab" v-for="(tab, i) in tabs" :key="tab.key" :ref="(el) => setTabRef(el, tab)"
+					:class="{ active: tab.key == modelValue }" @contextmenu="(e) => handleContextMenu(e, tab, i)">
+					<div class="chrome-tab-dividers"></div>
+					<div class="chrome-tab-background">
+						<svg version="1.1" xmlns="http://www.w3.org/2000/svg">
+							<defs>
+								<symbol id="chrome-tab-geometry-left" viewBox="0 0 214 36">
+									<path d="M17 0h197v36H0v-2c4.5 0 9-3.5 9-8V8c0-4.5 3.5-8 8-8z" />
+								</symbol>
+								<symbol id="chrome-tab-geometry-right" viewBox="0 0 214 36">
+									<use xlink:href="#chrome-tab-geometry-left" />
+								</symbol>
+								<clipPath id="crop">
+									<rect class="mask" width="100%" height="100%" x="0" />
+								</clipPath>
+							</defs>
+							<svg width="52%" height="100%">
+								<use xlink:href="#chrome-tab-geometry-left" width="214" height="36" class="chrome-tab-geometry" />
 							</svg>
-						</div>
-						<div class="chrome-tab-content">
-							<div class="chrome-tab-favicon">😄</div>
-							<div class="chrome-tab-title">{{ tab.label }}</div>
-							<div class="chrome-tab-drag-handle"></div>
-							<div class="chrome-tab-close" @click.stop="handleClose(tab, i)"></div>
-						</div>
+							<g transform="scale(-1, 1)">
+								<svg width="52%" height="100%" x="-100%" y="0">
+									<use xlink:href="#chrome-tab-geometry-right" width="214" height="36" class="chrome-tab-geometry" />
+								</svg>
+							</g>
+						</svg>
 					</div>
-				</TransitionGroup>
+					<div class="chrome-tab-content">
+						<div class="chrome-tab-favicon">😄</div>
+						<div class="chrome-tab-title">{{ tab.label }}</div>
+						<div class="chrome-tab-drag-handle"></div>
+						<div class="chrome-tab-close" @click.stop="handleClose(tab, i)"></div>
+					</div>
+				</div>
 			</div>
 			<div class="chrome-tabs-bottom-bar"></div>
 		</div>
@@ -105,7 +100,7 @@ function addInstance(tab: Tab, i: number) {
 		tab._instance.setPosition(tab._x, 0);
 		return;
 	}
-
+	
 	tab._instance = new Draggabilly(tab._el, {
 		axis: 'x',
 		containment: contentRef.value,
@@ -167,10 +162,12 @@ function handleClose(tab: Tab, i: number) {
 function handleContextMenu(e: Event, tab: Tab, i: number) {
 	emit('contextmenu', e, tab, i);
 }
+
 function handleDragStart(e: Event, tab: Tab, i: number) {
 	emit('update:modelValue', tab.key);
 	emit('dragstart', e, tab, i);
 }
+
 function handleDragMove(e, tab, i) {
 	const halfWidth = calcTabWidth.value / 2;
 
@@ -183,11 +180,11 @@ function handleDragMove(e, tab, i) {
 		const targetX: number = (currentTab._x || 1) - 1;
 		// 如果命中自己本身，则无需交换
 		if (tab.key === currentTab.key) {
-			// eslint-disable-next-line no-continue
 			continue;
 		}
-		// 判断是否有重叠的 tab，只需要判定是否在前半部分即可
-		if (targetX <= x && x < targetX + halfWidth) {
+		// 判断是否有重叠的 tab
+		const isSwap = (targetX <= x && x < targetX + halfWidth) || (targetX - halfWidth <= x && x < targetX)
+		if (isSwap) {
 			swapTab = currentTab;
 			swapTabs(tab, swapTab);
 			break;
@@ -218,29 +215,37 @@ function swapTabs(tab: Tab, swapTab: Tab) {
 	[tabs[index], tabs[swapIndex]] = [tabs[swapIndex], tabs[index]];
 
 	/** 交换position */
-	[tab._x, swapTab._x] = [swapTab._x, tab._x];
+	const { _x } = tab
+	tab._x = swapTab._x
+	swapTab._x = _x
 
-	const { _x } = tab;
 	const { _instance } = swapTab;
-
-	nextTick(() => {
-		_instance.setPosition(_x, _instance.position.y);
-	});
+	setTimeout(() => {
+		_instance.element.classList.add('move')
+		_instance.setPosition(_x, _instance.position.y)
+	}, 50)
+	setTimeout(() => {
+		_instance.element.classList.remove('move')
+	}, 200)
 }
 function handleDragEnd(e, tab, i) {
 	const { _instance } = tab;
-	if (_instance.position.x === 0) return;
 
-	nextTick(() => {
-		_instance.setPosition(tab._x, 0);
-	});
-	emit('dragend', e, tab, i);
+	if (_instance.position.x === 0) return
+	setTimeout(() => {
+		_instance.element.classList.add('move')
+		_instance.setPosition(tab._x, 0)
+	}, 50)
+	setTimeout(() => {
+		_instance.element.classList.remove('move')
+		emit('dragend', e, tab, i)
+	}, 200)
 }
 
 const calcTabWidth = computed(() => {
 	const { tabs, minWidth, maxWidth } = props;
 	const containerWidth = contentRef.value?.clientWidth || window.innerWidth;
-	const averageWidth = containerWidth / tabs.length;
+	const averageWidth = (containerWidth - 7 -GAP) / tabs.length + GAP;
 	let resultWidth;
 
 	const handle: [boolean, () => void][] = [
@@ -277,6 +282,7 @@ const calcTabWidth = computed(() => {
 
 <style scoped lang="less">
 @import './chrome-tabs.less';
+
 .vue3-chrome-tabs {
 	--container-background-color: #03629d;
 
@@ -290,12 +296,4 @@ const calcTabWidth = computed(() => {
 	--tab-close-background-color: #3085bb;
 	--tab-close-background-color-active: #4d97c5;
 }
-// .tab-enter-active {
-// 	transition: all 0.5s ease;
-// }
-
-// .tab-leave-to {
-// 	opacity: 0;
-// 	transform: translateX(-30px);
-// }
 </style>
