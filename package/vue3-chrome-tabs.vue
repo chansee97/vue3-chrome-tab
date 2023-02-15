@@ -83,7 +83,7 @@ const emit = defineEmits<{
 	(event: 'draging', e: Event, tab: Tab, i: number): void;
 	(event: 'dragend', e: Event, tab: Tab, i: number): void;
 	(event: 'close', tab: Tab, i: number): void;
-	(event: 'update:modelValue', key): void;
+	(event: 'update:modelValue', key: number | string): void;
 }>();
 
 function init() {
@@ -131,7 +131,7 @@ function doLayout() {
 	});
 }
 
-function setTabPosition(tab, i) {
+function setTabPosition(tab: Tab, i: number) {
 	const instance = tab._instance;
 	const _x = (calcTabWidth.value - GAP) * i;
 	tab._x = _x;
@@ -171,7 +171,7 @@ function handleDragStart(e: Event, tab: Tab, i: number) {
 	emit('dragstart', e, tab, i);
 }
 
-function handleDragMove(e, tab, i) {
+function handleDragMove(e: Event, tab: Tab, i: number) {
 	const halfWidth = calcTabWidth.value / 2;
 
 	const { x } = tab._instance.position;
@@ -231,7 +231,7 @@ function swapTabs(tab: Tab, swapTab: Tab) {
 		_instance.element.classList.remove('move')
 	}, 200)
 }
-function handleDragEnd(e, tab, i) {
+function handleDragEnd(e: Event, tab: Tab, i: number) {
 	const { _instance } = tab;
 
 	if (_instance.position.x === 0) return
@@ -249,7 +249,7 @@ const calcTabWidth = computed(() => {
 	const { tabs, minWidth, maxWidth } = props;
 	const containerWidth = contentRef.value?.clientWidth || window.innerWidth;
 	const averageWidth = (containerWidth - 7 - GAP) / tabs.length + GAP;
-	let resultWidth;
+	let resultWidth = 0;
 
 	const handle: [boolean, () => void][] = [
 		[
